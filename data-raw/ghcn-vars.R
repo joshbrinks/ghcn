@@ -2,7 +2,7 @@
 ghcn_daily_datatypes <- data.frame(
   datatype = c(
     "PRCP", "SNOW", "SNWD", "TMAX", "TMIN", "TAVG", "AWND", "EVAP", "MDEV", "MDPR",
-    "MDTN", "MDTX", "MNPN", "MXPN", "PGTM", "PSUN", "SN*#", "SX**", "TAVG", "THIC",
+    "MDTN", "MDTX", "MNPN", "MXPN", "PGTM", "PSUN", "SN*#", "SX**", "THIC",
     "TOBS", "TSUN", "WDF1", "WDF2", "WDF5", "WDFI", "WDFM", "WDMV", "WESD", "WESF",
     "WSF1", "WSF2", "WSF5", "WSFI", "WSFM", "WT01", "WT02", "WT03", "WT04", "WT05",
     "WT06", "WT07", "WT08", "WT09", "WT10", "WT11", "WT12", "WT13", "WT14", "WT15",
@@ -27,7 +27,6 @@ ghcn_daily_datatypes <- data.frame(
     "Daily percent of possible sunshine (percent)",
     "Snow depth (mm)",
     "Snow, ice pellets, hail (mm)",
-    "Average temperature (tenths of degrees Celsius)",
     "Thickness of ice on water (tenths of mm)",
     "Temperature at the time of observation (tenths of degrees Celsius)",
     "Daily total sunshine (minutes)",
