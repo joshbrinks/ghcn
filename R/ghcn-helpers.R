@@ -301,7 +301,7 @@ visualize_ghcn_daily_data <- function(data, station_name) {
     )
 
   # Create a custom color palette
-  custom_palette <- c("#3398cb", "#ed5535", "#9C27B0", "#009688", "#673AB7", "#4CAF50")
+  custom_palette <- c("#3398cb", "#9C27B0", "#009688","#ed5535", "#673AB7", "#4CAF50")
 
   # Ensure we have enough colors for all facets
   n_facets <- length(unique(data$label))
@@ -328,21 +328,21 @@ visualize_ghcn_daily_data <- function(data, station_name) {
     ggplot2::scale_color_manual(values = custom_palette)
 
   # Adjust y-axis for each datatype
-  p <- p + ggplot2::scale_y_continuous(
-    limits = function(x) {
-      datatype <- data$datatype[data$value %in% x][1]
-      if (is.na(datatype)) return(c(0, 1))  # Default range if no matching datatype
-
-      values <- data$value[data$datatype == datatype]
-      if (all(is.na(values))) return(c(0, 1))  # Default range if all values are NA
-
-      if (datatype %in% c("PRCP", "SNOW", "SNWD") || data$unit[data$datatype == datatype][1] %in% c("mm", "m/s")) {
-        c(0, max(values, na.rm = TRUE))
-      } else {
-        ggplot2::expand_range(range(values, na.rm = TRUE), mult = 0.05)
-      }
-    }
-  )
+  # p <- p + ggplot2::scale_y_continuous(
+  #   limits = function(x) {
+  #     datatype <- data$datatype[data$value %in% x][1]
+  #     if (is.na(datatype)) return(c(0, 1))  # Default range if no matching datatype
+  #
+  #     values <- data$value[data$datatype == datatype]
+  #     if (all(is.na(values))) return(c(0, 1))  # Default range if all values are NA
+  #
+  #     if (datatype %in% c("PRCP", "SNOW", "SNWD") || data$unit[data$datatype == datatype][1] %in% c("mm", "m/s")) {
+  #       c(0, max(values, na.rm = TRUE))
+  #     } else {
+  #       scales::expand_range(range(values, na.rm = TRUE), mul = 0.05)
+  #     }
+  #   }
+  # )
 
   return(p)
 }
