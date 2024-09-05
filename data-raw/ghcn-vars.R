@@ -6,7 +6,8 @@ ghcn_daily_datatypes <- data.frame(
     "TOBS", "TSUN", "WDF1", "WDF2", "WDF5", "WDFI", "WDFM", "WDMV", "WESD", "WESF",
     "WSF1", "WSF2", "WSF5", "WSFI", "WSFM", "WT01", "WT02", "WT03", "WT04", "WT05",
     "WT06", "WT07", "WT08", "WT09", "WT10", "WT11", "WT12", "WT13", "WT14", "WT15",
-    "WT16", "WT17", "WT18", "WT19", "WT21", "WT22"
+    "WT16", "WT17", "WT18", "WT19", "WT21", "WT22",
+    "ACMH", "ACSH", "FMTM", "GAHT", "WDFG", "WSFG", "WV01", "WV03"
   ),
   description = c(
     "Precipitation (tenths of mm)",
@@ -63,9 +64,18 @@ ghcn_daily_datatypes <- data.frame(
     "Snow, snow pellets, snow grains, or ice crystals",
     "Unknown source of precipitation",
     "Ground fog",
-    "Ice fog or freezing fog"
+    "Ice fog or freezing fog",
+    "Average Cloudiness Midnight to Midnight (percent)",
+    "Average Cloudiness Sunrise to Sunset (percent)",
+    "Time of Fastest Mile or Fastest 1-minute wind (hours and minutes, i.e., HHMM)",
+    "Difference between river and gauge height (feet)",
+    "Direction of peak wind gust (degrees)",
+    "Peak gust wind speed (mph)",
+    "Water equivalent of snow on the ground (inches)",
+    "Water equivalent of snow on the ground (centimeters)"
   ),
   stringsAsFactors = FALSE
 )
 
+# Save the data frame as an R object
 usethis::use_data(ghcn_daily_datatypes, overwrite = TRUE)
