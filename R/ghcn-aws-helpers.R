@@ -20,6 +20,22 @@
 #'
 #' @export
 find_stations_aws <- function(lat = NULL, lon = NULL, radius = NULL, name_pattern = NULL, max_distance = 0.5, max_stations = 10) {
+  # Input validation
+  if (!is.numeric(lat) || !is.numeric(lon) || !is.numeric(radius)) {
+    stop("lat, lon, and radius must be numeric values")
+  }
+
+  if (abs(lat) > 90) {
+    stop("Latitude must be between -90 and 90 degrees")
+  }
+
+  if (abs(lon) > 180) {
+    stop("Longitude must be between -180 and 180 degrees")
+  }
+
+  if (radius <= 0) {
+    stop("Radius must be a positive number")
+  }
   # Load the stations data
   stations <- data.table::as.data.table(ghcn::ghcn.stations)
 

@@ -14,7 +14,8 @@ Depends:
     R (>= 2.10)
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
 URL: https://joshbrinks.github.io/ghcn/
 Imports: 
@@ -25,3 +26,4 @@ Imports:
     jsonlite,
     lubridate,
     stringdist
+Config/testthat/edition: 3
