@@ -1,0 +1,20 @@
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://joshbrinks.github.io/ghcn/404.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/articles/ghcn.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/articles/index.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/authors.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/index.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/find_stations_aws.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/get_data_aws.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/get_ghcn_daily_data.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/get_ghcn_daily_stations.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/get_inventory_aws.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/ghcn-package.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/ghcn.inventory.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/ghcn.stations.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/ghcn_daily_datatypes.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/index.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/parse_flexible_date.html</loc></url>
+<url><loc>https://joshbrinks.github.io/ghcn/reference/visualize_ghcn_daily_data.html</loc></url>
+</urlset>
+
