@@ -199,8 +199,8 @@ get_data_aws <- function(station_id, start_date, end_date, variables, format = "
   if (!format %in% c("wide", "long")) stop("Invalid format. Must be 'wide' or 'long'.")
 
   # Parse dates
-  start_date <- parse_flexible_date(start_date)
-  end_date <- parse_flexible_date(end_date, end_of_period = TRUE)
+  start_date <- ghcn:::parse_flexible_date(start_date)
+  end_date <- ghcn:::parse_flexible_date(end_date, end_of_period = TRUE)
 
   if (start_date > end_date) stop("Start date must be before or equal to end date.")
 

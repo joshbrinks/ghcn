@@ -18,6 +18,6 @@ including available variables, their coverage periods, and other relevant detail
 }
 \examples{
 # Get inventory for two stations
-get_station_inventory(c("USW00094728", "USC00305816"))
+get_inventory_aws(c("USW00094728", "USC00305816"))
 
 }

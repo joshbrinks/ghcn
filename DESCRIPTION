@@ -1,9 +1,9 @@
 Package: ghcn
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Provides an interface to NCEI GHCN-Daly dataset.
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Author: Joshua Brinks
+Maintainer: The package maintainer <jbrinks@isciences.com>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?
@@ -17,3 +17,11 @@ Suggests:
     rmarkdown
 VignetteBuilder: knitr
 URL: https://joshbrinks.github.io/ghcn/
+Imports: 
+    data.table,
+    dplyr,
+    ggplot2,
+    httr,
+    jsonlite,
+    lubridate,
+    stringdist

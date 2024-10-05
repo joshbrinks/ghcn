@@ -25,6 +25,6 @@ This function retrieves GHCN-D data for specified station(s), time period, and v
 }
 \examples{
 # Retrieve temperature data for a station from January 2020 to January 2023
-nyc_temp_data <- get_station_data("USC00305816", "2020-01", "2023-01", c("TMAX", "TMIN"))
+nyc_temp_data <- get_data_aws("USC00305816", "2020-01", "2023-01", c("TMAX", "TMIN"))
 
 }
