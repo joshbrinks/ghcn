@@ -149,7 +149,6 @@ map_ghcn_stations <- function(stations) {
 
   return(map)
 }
-# Find stations with complete records
 
 #' Analyze Missingness Rates for GHCN Stations
 #'
@@ -328,44 +327,60 @@ filter_by_coverage <- function(missingness, min_coverage = 0.9, us_only = FALSE)
   return(result)
 }
 
+# Step 1: Find stations with long records
+long_coverage_stations <- find_longterm_stations(
+  min_year = 1950,
+  max_year = 2023,
+  required_elements = c("PRCP", "TMAX", "TMIN")
+)
 
-# Analyze missingness with parallel processing
+long_coverage_stations<-long_coverage_stations[state!=""]
+
+# Step 2: Get actual coverage rates through analyze_station_missingness
 missingness <- analyze_station_missingness(
-  stations = stations,
+  stations = long_coverage_stations,
   start_date = "1900-01-01",
   end_date = "2023-12-31",
   variables = c("PRCP", "TMAX", "TMIN"),
   parallel = TRUE,
-  n_cores = 6  # adjust based on your system
+  n_cores = 7
 )
 
-# Quick summary by variable
-summary_by_var <- missingness[, .(
-  mean_coverage = mean(coverage_rate),
-  median_coverage = median(coverage_rate),
-  min_coverage = min(coverage_rate),
-  max_coverage = max(coverage_rate),
-  n_stations = .N
-), by = variable]
+# Step 3: Now we can use filter_by_coverage
+good_stations <- filter_by_coverage(
+  missingness = missingness,
+  min_coverage = 0.995,
+  us_only = TRUE
+)
 
-print(summary_by_var)
+# Step 4: Create map of qualifying stations
+map_ghcn_stations(good_stations)
 
-# Create the interactive map
-map_ghcn_stations(stations)
+# Step 6: Analyze Q_FLAGS for a single station as an example
+# Choose the first station from our good stations
+example_station <- good_stations[1, id]
 
-View(missingness[coverage_rate > 0.999 & state!=""])
+station_data <- ghcn::get_data_aws(
+  station_id = example_station,
+  start_date = "1900-01-01",
+  end_date = "2023-12-31",
+  variables = c("PRCP", "TMAX", "TMIN")
+)
 
-# Filter for US stations with at least 90% coverage for all variables
-us_stations <- filter_by_coverage(missingness, min_coverage = 0.995, us_only = TRUE)
+qflag_summary <- analyze_qflags(station_data)
 
-# Show summary by station
-station_summary <- us_stations[, .(
-  coverage_rates = paste(sprintf("%s: %.1f%%",
-                                 variable, coverage_rate * 100),
-                         collapse = ", "),
-  min_rate = min_coverage_rate * 100,
-  mean_rate = mean_coverage_rate * 100,
-  worst_variable = worst_var
-), by = .(id, name, state)]
+# Print summaries at each step
+cat("\nInitial station identification:")
+print(head(long_coverage_stations))
 
-View(unique(station_summary))
+cat("\nUS stations summary:")
+print(head(us_stations))
+
+cat("\nMissingness analysis summary:")
+print(head(missingness))
+
+cat("\nStations meeting coverage criteria:")
+print(head(good_stations))
+
+cat("\nQuality flag analysis for example station:", example_station)
+print(qflag_summary)
