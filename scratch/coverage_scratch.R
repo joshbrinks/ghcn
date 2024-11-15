@@ -152,81 +152,90 @@ map_ghcn_stations <- function(stations) {
 
 #' Analyze Missingness Rates for GHCN Stations
 #'
-#' Optimized function to calculate missingness rates for specified variables
-#' using data.table operations and parallel processing.
+#' Calculates missingness rates for specified time periods and variables.
 #'
 #' @param stations data.table Output from find_longterm_stations()
-#' @param start_date Character. Start date in "YYYY-MM-DD" format
-#' @param end_date Character. End date in "YYYY-MM-DD" format
+#' @param periods List of lists containing time periods to analyze
 #' @param variables Character vector. Variables to analyze
 #' @param parallel Logical. Whether to use parallel processing
 #' @param n_cores Integer. Number of cores to use if parallel=TRUE
-#' @return data.table with missingness rates by station and variable
+#' @return data.table with missingness rates by station, variable, and period
 analyze_station_missingness <- function(stations,
-                                        start_date = "1900-01-01",
-                                        end_date = "2023-12-31",
+                                        periods = list(
+                                          p1900 = list(start = "1900-01-01", end = "2023-12-31", label = "1900-2023"),
+                                          p1925 = list(start = "1925-01-01", end = "2023-12-31", label = "1925-2023"),
+                                          p1950 = list(start = "1950-01-01", end = "2023-12-31", label = "1950-2023")
+                                        ),
                                         variables = c("PRCP", "TMAX", "TMIN"),
                                         parallel = TRUE,
                                         n_cores = min(parallel::detectCores() - 1, 8)) {
   library(data.table)
+  library(lubridate)
 
-  # Calculate expected number of days once
-  expected_days <- as.numeric(as.Date(end_date) - as.Date(start_date) + 1)
-
-  # Function to process a single station
+  # Function to process a single station for all periods
   process_station <- function(station_id) {
     tryCatch({
-      # Get station data
+      # Get the full date range of data
       station_data <- ghcn::get_data_aws(
         station_id = station_id,
-        start_date = start_date,
-        end_date = end_date,
+        start_date = periods[[1]]$start,  # Use earliest start date
+        end_date = periods[[length(periods)]]$end,  # Use latest end date
         variables = variables
       )
 
       if(nrow(station_data) == 0) {
         # Return all NA if no data
-        return(data.table(
-          id = station_id,
-          variable = variables,
-          total_days = expected_days,
-          missing_days = expected_days,
-          available_days = 0,
-          missing_rate = 1,
-          coverage_rate = 0
-        ))
+        return(NULL)
       }
 
       # Convert to data.table if not already
       setDT(station_data)
 
-      # Calculate missingness for all variables at once
-      stats <- lapply(variables, function(var) {
-        if(var %in% names(station_data)) {
-          missing_count <- sum(is.na(station_data[[var]]))
-          data.table(
-            id = station_id,
-            variable = var,
-            total_days = expected_days,
-            missing_days = missing_count,
-            available_days = expected_days - missing_count,
-            missing_rate = missing_count / expected_days,
-            coverage_rate = 1 - (missing_count / expected_days)
-          )
-        } else {
-          data.table(
-            id = station_id,
-            variable = var,
-            total_days = expected_days,
-            missing_days = expected_days,
-            available_days = 0,
-            missing_rate = 1,
-            coverage_rate = 0
-          )
-        }
+      # Calculate coverage for each period
+      period_results <- lapply(periods, function(period) {
+        # Calculate exact number of days in period
+        start_dt <- ymd(period$start)
+        end_dt <- ymd(period$end)
+        expected_days <- as.numeric(interval(start_dt, end_dt) / days(1)) + 1
+
+        # Filter data for this period
+        period_data <- station_data[DATE >= start_dt & DATE <= end_dt]
+
+        # Calculate coverage for each variable
+        var_stats <- lapply(variables, function(var) {
+          if(var %in% names(period_data)) {
+            # Count valid numeric values
+            valid_count <- sum(!is.na(period_data[[var]]) &
+                                 period_data[[var]] != "" &
+                                 !is.null(period_data[[var]]) &
+                                 is.finite(period_data[[var]]))
+
+            data.table(
+              id = station_id,
+              variable = var,
+              period = period$label,
+              total_days = expected_days,
+              missing_days = expected_days - valid_count,
+              available_days = valid_count,
+              coverage_rate = valid_count / expected_days
+            )
+          } else {
+            data.table(
+              id = station_id,
+              variable = var,
+              period = period$label,
+              total_days = expected_days,
+              missing_days = expected_days,
+              available_days = 0,
+              coverage_rate = 0
+            )
+          }
+        })
+
+        rbindlist(var_stats)
       })
 
-      rbindlist(stats)
+      rbindlist(period_results)
 
     }, error = function(e) {
       warning(sprintf("Error processing station %s: %s", station_id, e$message))
@@ -243,12 +252,13 @@ analyze_station_missingness <- function(stations,
     on.exit(stopCluster(cl))
 
     # Export necessary objects to cluster
-    clusterExport(cl, c("expected_days", "start_date", "end_date", "variables"), environment())
+    clusterExport(cl, c("periods", "variables"), environment())
 
     # Load required packages on each cluster
     clusterEvalQ(cl, {
       library(data.table)
       library(ghcn)
+      library(lubridate)
     })
 
     # Process stations with progress bar
@@ -269,62 +279,75 @@ analyze_station_missingness <- function(stations,
     by = "id"
   )
 
-  # Order by station ID and variable
-  setorder(final_results, id, variable)
+  # Order by station ID, period, and variable
+  setorder(final_results, id, period, variable)
 
   return(final_results)
 }
 
-#' Filter Stations by Coverage Rate Threshold
+#' Filter Stations by Coverage Rate Threshold Across Time Periods
 #'
-#' Identifies stations that meet minimum coverage requirements for all specified variables
-#'
-#' @param missingness data.table Output from analyze_station_missingness()
-#' @param min_coverage Numeric. Minimum coverage rate (0-1)
-#' @param us_only Logical. Whether to return only US stations
-#' @return data.table of stations meeting criteria
-filter_by_coverage <- function(missingness, min_coverage = 0.9, us_only = FALSE) {
-  # Get minimum coverage rate for each station across all variables
-  station_min_coverage <- missingness[, .(
-    min_coverage_rate = min(coverage_rate),
-    mean_coverage_rate = mean(coverage_rate),
-    worst_var = variable[which.min(coverage_rate)]
-  ), by = .(id, name, state, latitude, longitude, elevation)]
+#' @param missingness data.table Output from analyze_station_missingness
+#' @param threshold numeric Minimum coverage rate (0-1)
+#' @param us_only logical Whether to return only US stations
+#' @return data.table with qualified stations and their temporal coverage status
+filter_by_coverage <- function(missingness, threshold = 0.98, us_only = FALSE) {
+  library(data.table)
 
-  # Apply US filter if requested
+  # Get minimum coverage rate for each station-period combination across variables
+  period_coverage <- missingness[, .(
+    min_coverage = min(coverage_rate),
+    n_vars = uniqueN(variable)
+  ), by = .(id, name, state, latitude, longitude, elevation, period)]
+
+  # Identify periods where station meets threshold for all variables
+  qualified_periods <- period_coverage[
+    min_coverage >= threshold & n_vars == 3  # Assuming we want all three variables
+  ]
+
+  # Create indicators for which periods each station qualifies for
+  coverage_indicators <- dcast(
+    qualified_periods,
+    id + name + state + latitude + longitude + elevation ~ period,
+    value.var = "min_coverage",
+    fill = 0
+  )
+
+  # Create column names for periods
+  period_cols <- grep("^[0-9]", names(coverage_indicators), value = TRUE)
+
+  # Add a column indicating earliest period of qualification
+  coverage_indicators[, earliest_period := fcase(
+    get(period_cols[1]) >= threshold, period_cols[1],
+    get(period_cols[2]) >= threshold, period_cols[2],
+    get(period_cols[3]) >= threshold, period_cols[3],
+    default = NA_character_
+  )]
+
+  # Filter for US stations if requested
   if(us_only) {
-    station_min_coverage <- station_min_coverage[substr(id, 1, 2) == "US"]
+    coverage_indicators <- coverage_indicators[
+      !is.na(state) | substr(id, 1, 2) == "US"
+    ]
   }
 
-  # Filter stations meeting threshold
-  qualifying_stations <- station_min_coverage[min_coverage_rate >= min_coverage]
+  # Order by earliest period and then state
+  coverage_indicators[, period_order := fcase(
+    earliest_period == period_cols[1], 1,
+    earliest_period == period_cols[2], 2,
+    earliest_period == period_cols[3], 3,
+    default = 4
+  )]
 
-  # Merge back with full variable information for qualifying stations
-  result <- missingness[id %in% qualifying_stations$id]
+  setorder(coverage_indicators, period_order, state)
+  coverage_indicators[, period_order := NULL]
 
-  # Add the overall statistics
-  result <- merge(result,
-                  qualifying_stations[, .(id, min_coverage_rate, mean_coverage_rate, worst_var)],
-                  by = "id")
-
-  # Order by coverage rate and ID
-  setorder(result, -min_coverage_rate, id)
-
-  # Print summary
-  cat(sprintf("Found %d stations meeting %.1f%% coverage threshold",
-              uniqueN(result$id), min_coverage * 100))
-  if(us_only) cat(" in the United States")
-  cat("\n")
-
-  # Print state distribution if US only
-  if(us_only && nrow(result) > 0) {
-    state_counts <- unique(result[, .(id, state)])[, .N, by = state]
-    setorder(state_counts, -N)
-    cat("\nStations per state:\n")
-    print(state_counts)
+  # Format coverage percentages
+  for(col in period_cols) {
+    coverage_indicators[, (col) := round(get(col) * 100, 2)]
   }
 
-  return(result)
+  return(coverage_indicators)
 }
 
 # Step 1: Find stations with long records
@@ -334,25 +357,30 @@ long_coverage_stations <- find_longterm_stations(
   required_elements = c("PRCP", "TMAX", "TMIN")
 )
 
-long_coverage_stations<-long_coverage_stations[state!=""]
+# get US stations
+long_coverage_stations<-long_coverage_stations[substr(id, 1, 2)=="US"]
 
-# Step 2: Get actual coverage rates through analyze_station_missingness
+# Define time periods
+periods <- list(
+  p1900 = list(start = "1900-01-01", end = "2023-12-31", label = "1900-2023"),
+  p1925 = list(start = "1925-01-01", end = "2023-12-31", label = "1925-2023"),
+  p1950 = list(start = "1950-01-01", end = "2023-12-31", label = "1950-2023")
+)
+
+# Analyze missingness for all periods
 missingness <- analyze_station_missingness(
   stations = long_coverage_stations,
-  start_date = "1900-01-01",
-  end_date = "2023-12-31",
+  periods = periods,
   variables = c("PRCP", "TMAX", "TMIN"),
-  parallel = TRUE,
-  n_cores = 7
+  parallel = TRUE
 )
 
 # Step 3: Now we can use filter_by_coverage
-good_stations <- filter_by_coverage(
+qualified_stations <- filter_by_coverage(
   missingness = missingness,
-  min_coverage = 0.995,
-  us_only = TRUE
+  threshold = 0.98,
+  us_only = FALSE
 )
-
 # Step 4: Create map of qualifying stations
 map_ghcn_stations(good_stations)
 
