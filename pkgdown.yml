@@ -3,7 +3,7 @@ pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   ghcn: ghcn.html
-last_built: 2024-11-13T17:30Z
+last_built: 2024-11-15T17:10Z
 urls:
   reference: https://joshbrinks.github.io/ghcn/reference
   article: https://joshbrinks.github.io/ghcn/articles
